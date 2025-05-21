@@ -500,8 +500,7 @@ class OllamaCV(Base):
             response = self.client.chat(
                 model=self.model_name,
                 messages=history,
-                options=options,
-                keep_alive=-1
+                options=options
             )
 
             ans = response["message"]["content"].strip()
@@ -531,8 +530,7 @@ class OllamaCV(Base):
                 model=self.model_name,
                 messages=history,
                 stream=True,
-                options=options,
-                keep_alive=-1
+                options=options
             )
             for resp in response:
                 if resp["done"]:
@@ -1029,3 +1027,13 @@ class AnthropicCV(Base):
             yield ans + "\n**ERROR**: " + str(e)
 
         yield total_tokens
+
+class GPUStackCV(GptV4):
+    def __init__(self, key, model_name, lang="Chinese", base_url=""):
+        if not base_url:
+            raise ValueError("Local llm url cannot be None")
+        if base_url.split("/")[-1] != "v1":
+            base_url = os.path.join(base_url, "v1")
+        self.client = OpenAI(api_key=key, base_url=base_url)
+        self.model_name = model_name
+        self.lang = lang

@@ -18,10 +18,11 @@ from concurrent.futures import ThreadPoolExecutor
 from random import randint
 
 import pytest
-from common import INVALID_API_TOKEN, delete_documnet, update_chunk
+from common import INVALID_API_TOKEN, delete_documnets, update_chunk
 from libs.auth import RAGFlowHttpApiAuth
 
 
+@pytest.mark.p1
 class TestAuthorization:
     @pytest.mark.parametrize(
         "auth, expected_code, expected_message",
@@ -41,6 +42,7 @@ class TestAuthorization:
 
 
 class TestUpdatedChunk:
+    @pytest.mark.p1
     @pytest.mark.parametrize(
         "payload, expected_code, expected_message",
         [
@@ -54,7 +56,7 @@ class TestUpdatedChunk:
             pytest.param(
                 {"content": 1},
                 100,
-                """TypeError("unsupported operand type(s) for +: \'int\' and \'str\'")""",
+                "TypeError('expected string or bytes-like object')",
                 marks=pytest.mark.skip,
             ),
             ({"content": "update chunk"}, 0, ""),
@@ -74,6 +76,7 @@ class TestUpdatedChunk:
         if expected_code != 0:
             assert res["message"] == expected_message
 
+    @pytest.mark.p2
     @pytest.mark.parametrize(
         "payload, expected_code, expected_message",
         [
@@ -92,16 +95,12 @@ class TestUpdatedChunk:
         if expected_code != 0:
             assert res["message"] == expected_message
 
+    @pytest.mark.p2
     @pytest.mark.parametrize(
         "payload, expected_code, expected_message",
         [
             ({"questions": ["a", "b", "c"]}, 0, ""),
-            pytest.param(
-                {"questions": [""]},
-                0,
-                "",
-                marks=pytest.mark.skip(reason="issues/6539"),
-            ),
+            ({"questions": [""]}, 0, ""),
             ({"questions": [1]}, 100, "TypeError('sequence item 0: expected str instance, int found')"),
             ({"questions": ["a", "a"]}, 0, ""),
             ({"questions": "abc"}, 102, "`questions` should be a list"),
@@ -115,6 +114,7 @@ class TestUpdatedChunk:
         if expected_code != 0:
             assert res["message"] == expected_message
 
+    @pytest.mark.p2
     @pytest.mark.parametrize(
         "payload, expected_code, expected_message",
         [
@@ -140,6 +140,7 @@ class TestUpdatedChunk:
         if expected_code != 0:
             assert res["message"] == expected_message
 
+    @pytest.mark.p3
     @pytest.mark.parametrize(
         "dataset_id, expected_code, expected_message",
         [
@@ -154,6 +155,7 @@ class TestUpdatedChunk:
         assert res["code"] == expected_code
         assert expected_message in res["message"]
 
+    @pytest.mark.p3
     @pytest.mark.parametrize(
         "document_id, expected_code, expected_message",
         [
@@ -171,6 +173,7 @@ class TestUpdatedChunk:
         assert res["code"] == expected_code
         assert res["message"] == expected_message
 
+    @pytest.mark.p3
     @pytest.mark.parametrize(
         "chunk_id, expected_code, expected_message",
         [
@@ -188,6 +191,7 @@ class TestUpdatedChunk:
         assert res["code"] == expected_code
         assert res["message"] == expected_message
 
+    @pytest.mark.p3
     def test_repeated_update_chunk(self, get_http_api_auth, add_chunks):
         dataset_id, document_id, chunk_ids = add_chunks
         res = update_chunk(get_http_api_auth, dataset_id, document_id, chunk_ids[0], {"content": "chunk test 1"})
@@ -196,6 +200,7 @@ class TestUpdatedChunk:
         res = update_chunk(get_http_api_auth, dataset_id, document_id, chunk_ids[0], {"content": "chunk test 2"})
         assert res["code"] == 0
 
+    @pytest.mark.p3
     @pytest.mark.parametrize(
         "payload, expected_code, expected_message",
         [
@@ -211,6 +216,7 @@ class TestUpdatedChunk:
         if expected_code != 0:
             assert res["message"] == expected_message
 
+    @pytest.mark.p3
     @pytest.mark.skipif(os.getenv("DOC_ENGINE") == "infinity", reason="issues/6554")
     def test_concurrent_update_chunk(self, get_http_api_auth, add_chunks):
         chunk_num = 50
@@ -231,9 +237,10 @@ class TestUpdatedChunk:
         responses = [f.result() for f in futures]
         assert all(r["code"] == 0 for r in responses)
 
+    @pytest.mark.p3
     def test_update_chunk_to_deleted_document(self, get_http_api_auth, add_chunks):
         dataset_id, document_id, chunk_ids = add_chunks
-        delete_documnet(get_http_api_auth, dataset_id, {"ids": [document_id]})
+        delete_documnets(get_http_api_auth, dataset_id, {"ids": [document_id]})
         res = update_chunk(get_http_api_auth, dataset_id, document_id, chunk_ids[0])
         assert res["code"] == 102
         assert res["message"] == f"Can't find this chunk {chunk_ids[0]}"
